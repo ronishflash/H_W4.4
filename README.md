@@ -18,7 +18,7 @@ All required GitHub features have been completed, including:
 - Creating and managing branches
 - Making commits with meaningful messages
 - Creating and closing issues
-- Merging a pull request into the main branch
+- Merging a pull request into the main branch.
 
 ## Contact
-Created by Ronish Padhy for Stat 184.
+Created by Ronish Padhy for Stat 184
