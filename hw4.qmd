@@ -1,8 +1,10 @@
 ---
-title: "hw4"
+title: "HW 4.3 analysis"
 author: "Ronish Padhy"
 date: "April 17, 2026"
 format: pdf
+execute:
+  echo: false
 ---
 
 # Introduction
