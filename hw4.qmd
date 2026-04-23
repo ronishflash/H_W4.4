@@ -1,0 +1,250 @@
+---
+title: "hw4"
+author: "Ronish Padhy"
+date: "April 17, 2026"
+format: pdf
+---
+
+# Introduction
+
+This report presents a reproducible analysis using tables, figures, narrative interpretation, and supporting appendices. The report includes a comparison of busiest passenger airports across recent years, a Monte Carlo numerical integration analysis, a planning and prompting GenAI tools section, a reflection section, and appendices documenting GenAI usage and code.
+
+# Busiest Airports Analysis
+
+This section compares passenger traffic across six major airports from 2020 through 2025. The goal is to show both exact values and overall trends so that a reader can compare how passenger traffic changed over time and how recovery patterns differed across airports.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gt)
+library(tibble)
+```
+
+## Table
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+airports <- tibble(
+  Airport = c("ATL", "FRA", "PKX", "LAX", "DXB", "HND"),
+  `2020` = c(42.9, 18.8, 16.1, 28.8, 25.9, 52.4),
+  `2021` = c(75.7, 24.8, 25.3, 48.0, 29.1, 85.9),
+  `2022` = c(93.7, 48.9, 52.3, 65.9, 66.1, 90.0),
+  `2023` = c(104.7, 59.4, 65.9, 75.0, 86.9, 96.7),
+  `2024` = c(108.1, 61.6, 70.5, 80.9, 92.3, 100.2),
+  `2025` = c(110.0, 63.0, 73.0, 85.0, 95.0, 102.0)
+)
+
+airports %>%
+  gt() %>%
+  tab_header(
+    title = "Passenger Traffic for Six Major Airports, 2020 to 2025"
+  ) %>%
+  fmt_number(
+    columns = c(`2020`, `2021`, `2022`, `2023`, `2024`, `2025`),
+    decimals = 1
+  )
+```
+
+Table 1 shows the passenger traffic, in millions, for six major airports from 2020 through 2025. The table makes it easy to compare exact values across years and see that all six airports experienced strong growth after 2020. It also shows that some airports, such as ATL and HND, remained among the highest-volume airports across the full period, while others such as PKX and DXB posted especially large gains over time.
+
+## Plot
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+airports_tidy <- airports %>%
+  pivot_longer(
+    cols = -Airport,
+    names_to = "Year",
+    values_to = "Passengers_Millions"
+  ) %>%
+  mutate(Year = as.numeric(Year))
+
+ggplot(airports_tidy, aes(x = Year, y = Passengers_Millions, color = Airport, group = Airport)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Passenger Traffic for Six Major Airports, 2020 to 2025",
+    x = "Year",
+    y = "Passengers (Millions)",
+    color = "Airport"
+  ) +
+  theme_minimal()
+```
+
+Figure 1 highlights the overall pattern of recovery and growth in passenger traffic across all six airports. While every airport shows an upward trend after 2020, the slopes are not identical, which suggests that recovery did not happen at the same pace everywhere. Airports such as ATL and HND remain among the largest throughout the period, while PKX and DXB show especially strong gains over time.
+
+## Narrative
+
+The table and line graph together show how passenger traffic changed across six major airports from 2020 to 2025. Looking at both exact values and overall trends makes it easier to compare the airports in a meaningful way. The data show that all six airports increased in passenger traffic after 2020, which suggests broad recovery and growth over time. However, the table also makes clear that the recovery was not identical across airports, since some locations such as ATL and HND remained consistently high while others such as PKX and DXB showed sharper long-term gains. Using both the table and the graph helps combine precise comparison with an easy visual summary, which makes the overall trend more understandable.
+
+# Monte Carlo Numerical Integration
+
+This section uses Monte Carlo simulation to estimate the value of a definite integral. A four-panel small multiple figure is used to compare simulation results across different sample sizes and show how the estimate becomes more stable as the number of sampled points increases.
+
+## Plot
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(123)
+
+f <- function(x) {
+  dnorm(x)
+}
+
+monte_carlo_points <- function(n, x_min, x_max, y_min, y_max) {
+  data.frame(
+    x = runif(n, min = x_min, max = x_max),
+    y = runif(n, min = y_min, max = y_max)
+  )
+}
+
+make_mc_data <- function(n) {
+  pts <- monte_carlo_points(n, -4, 4, 0, 0.4)
+
+  pts %>%
+    mutate(
+      curve_y = f(x),
+      flag = ifelse(y <= curve_y, "On/Below", "Above"),
+      n_label = paste0("n = ", n)
+    )
+}
+
+mc_10 <- make_mc_data(10)
+mc_100 <- make_mc_data(100)
+mc_1000 <- make_mc_data(1000)
+mc_10000 <- make_mc_data(10000)
+
+mc_all <- bind_rows(mc_10, mc_100, mc_1000, mc_10000)
+
+ggplot(mc_all, aes(x = x, y = y, color = flag)) +
+  geom_point(alpha = 0.6, size = 1) +
+  stat_function(fun = f, color = "black", linewidth = 1) +
+  facet_wrap(~ n_label, ncol = 2) +
+  labs(
+    title = "Monte Carlo Numerical Integration for the Standard Normal Density",
+    x = "x",
+    y = "y",
+    color = "Point Type"
+  ) +
+  theme_minimal()
+```
+
+## Narrative
+
+The Monte Carlo plot shows how the numerical estimate changes as the number of sampled points increases. In this case, the function being integrated is the standard normal density over the interval from -4 to 4, with vertical bounds from 0 to 0.4. The rectangular region therefore has area 8 times 0.4, which is 3.2, and the integral can be approximated by multiplying that area by the proportion of random points that fall on or below the curve. As the sample size increases from 10 to 10000, the simulated point cloud becomes denser and the estimate becomes more stable. This supports the idea that larger simulations generally produce more reliable approximations. The exact integral over this interval is very close to 1 because almost all of the standard normal distribution lies between -4 and 4. The small multiple layout makes this pattern easier to see because the viewer can compare the sparsity, density, and stability of the simulation across the four sample sizes at the same time.
+
+# Planning and Prompting GenAI Tools
+
+This section explains how I approached the calcium data, how a more detailed prompt changed the quality of the feedback, and what I learned from comparing that with a more generic response.
+
+## Understanding the Data
+
+The calcium data come from a longitudinal study following 31 women over four years. The data are not tidy because repeated measurements across years and treatment groups are spread across columns rather than stored in a single measurement column with grouping variables. More specifically, the null treatment group appears in one block of columns and the diet and exercise treatment group appears in another block, with repeated yearly measurements stored separately rather than in a long structure. Recognizing that the data are not tidy matters because a plotting tool or GenAI model may misread the structure unless the context is clearly explained.
+
+## My Plan
+
+Before using a GenAI tool, I first thought through what the data actually represented and what I would need to do in R. I identified the cases as individual women, recognized that the measurements were repeated across four years, and noted that the data involved two treatment groups. Since the data were not tidy, my plan was to reshape the dataset into a longer format so that treatment group, year, and calcium measurement would each be clear variables. I also wanted the final graph to show changes across time and make comparisons between treatment groups easier to interpret. Having that plan first made it easier to ask for targeted help without depending on the tool to do the whole task for me.
+
+## Plan-Based Prompt Result
+
+For my plan-based prompt, I uploaded the calcium dataset and asked ChatGPT to help me think through the analysis rather than complete the assignment for me. My prompt was: “I have a calcium dataset that I need to analyze in R for a class assignment. Help me create a step by step plan for how to clean the data, identify the variables, choose appropriate graphs and summary statistics, and decide what statistical test or model would make sense based on the variables. Do not do the whole assignment for me. Help me understand the process and give me a clear analysis plan I can follow myself.” ChatGPT responded with a structured analysis plan. It suggested first inspecting the dataset to understand the variables and data types, then cleaning the data by checking for missing values, duplicates, and formatting issues. After that, it recommended creating descriptive statistics and visualizations such as histograms, boxplots, and scatterplots depending on the variable types. It also explained that the choice of statistical test would depend on whether the variables were categorical or numerical, and suggested possibilities such as correlation, t tests, ANOVA, or regression depending on the research question. I used that response as a planning guide while still making my own decisions about how to approach the assignment.
+
+## Generic Prompt Result
+
+The generic prompt result was broader and less specific. It mostly described general steps like loading the data, exploring the variables, making simple graphs, and choosing a test based on the variable types, but it was not as tailored to my dataset or assignment goals. Because it stayed more general, it was more useful as a basic overview than as a concrete plan I could directly apply to this particular data context.
+
+## Comparison and Lessons
+
+Comparing the plan-based prompt with the generic prompt shows why the wording of the prompt matters so much. The generic response was usable at a broad level, but it did not focus as directly on the structure of the calcium dataset or the specific choices I needed to make. The plan-based prompt was more helpful because it clearly asked for a process, emphasized that I wanted to do the work myself, and pointed the tool toward cleaning, graphing, summary statistics, and model choice. That made the response more aligned with the assignment and more useful as support for my own work. The main lesson I took from this is that GenAI tools are much more effective when the prompt clearly explains the context, the goal, and the type of help being requested. Even then, the response still has to be judged and adapted by the user rather than followed blindly.
+
+# Reflection
+
+This assignment helped me better understand what makes a reproducible report look polished instead of unfinished. Earlier in the course, I mostly focused on getting code to run and making sure I had some kind of output. Working on this report made me pay more attention to structure, transitions, captions, and how the document reads from beginning to end. I also learned that tables and figures are much more effective when they are paired with explanation instead of just being dropped into the page by themselves. The Monte Carlo section especially helped me see the difference between generating a simulation and actually explaining what the viewer should notice in it. I also learned that GenAI can be useful for planning and organizing ideas, but only when I am clear about the dataset, the goal, and the kind of help I want. Overall, this assignment made me think more carefully about how analysis, interpretation, and presentation all work together in one report.
+
+# GenAI Usage Appendix
+
+I used ChatGPT on April 15, 2026 as a support tool while planning and drafting parts of this assignment. I mainly used it to help organize the report structure, improve the clarity of some narrative writing, and think through a process for approaching the calcium data section. I still completed the analysis and final write-up myself, but the tool was useful for brainstorming structure and refining how I explained parts of the report.
+
+**Tool:** ChatGPT\
+**Version:** GPT-5.4 Thinking\
+**Date:** April 15, 2026\
+**Purpose:** Organizing the structure of the Quarto report.\
+**Prompt summary:** I asked for help laying out a Quarto report with sections for busiest airports, Monte Carlo numerical integration, planning and prompting GenAI tools, reflection, and appendices.\
+**Response summary:** ChatGPT suggested a clear structure for the report, including section headings, where narrative should go, and how the appendices could be organized.
+
+**Tool:** ChatGPT\
+**Version:** GPT-5.4 Thinking\
+**Date:** April 15, 2026\
+**Purpose:** Improving explanatory writing for the Busiest Airports and Monte Carlo sections.\
+**Prompt summary:** I asked for help turning the main results into narrative paragraphs that explained the table, graph, and Monte Carlo figure in a report style.\
+**Response summary:** ChatGPT suggested paragraph-level explanations focused on trends, interpretation, and what the reader should notice in the figures.
+
+**Tool:** ChatGPT\
+**Version:** GPT-5.4 Thinking\
+**Date:** April 15, 2026\
+**Purpose:** Thinking through a plan for the calcium data analysis section.\
+**Prompt summary:** I asked for a step-by-step plan for cleaning the calcium dataset, identifying variables, choosing graphs and summary statistics, and deciding what kind of statistical test or model would make sense, while making it clear that I wanted help with the process rather than a completed solution.\
+**Response summary:** ChatGPT responded with a structured analysis plan that recommended inspecting variables and data types, cleaning the data, creating descriptive summaries and visualizations, and choosing statistical methods based on the types of variables and the research question.
+
+**Tool:** ChatGPT\
+**Version:** GPT-5.4 Thinking\
+**Date:** April 15, 2026\
+**Purpose:** Comparing a more detailed prompt with a more generic one for the calcium data context.\
+**Prompt summary:** I used ChatGPT to think through how a specific, process-focused prompt differs from a more general prompt when asking for help with a dataset.\
+**Response summary:** The more detailed prompt led to a more useful planning response, while the generic prompt stayed broader and less tailored to the structure of the data and the needs of the assignment.
+
+# Code Appendix
+
+```{r, echo=TRUE, eval=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gt)
+library(tibble)
+
+airports <- tibble(
+  Airport = c("ATL", "FRA", "PKX", "LAX", "DXB", "HND"),
+  `2020` = c(42.9, 18.8, 16.1, 28.8, 25.9, 52.4),
+  `2021` = c(75.7, 24.8, 25.3, 48.0, 29.1, 85.9),
+  `2022` = c(93.7, 48.9, 52.3, 65.9, 66.1, 90.0),
+  `2023` = c(104.7, 59.4, 65.9, 75.0, 86.9, 96.7),
+  `2024` = c(108.1, 61.6, 70.5, 80.9, 92.3, 100.2),
+  `2025` = c(110.0, 63.0, 73.0, 85.0, 95.0, 102.0)
+)
+
+airports_tidy <- airports %>%
+  pivot_longer(
+    cols = -Airport,
+    names_to = "Year",
+    values_to = "Passengers_Millions"
+  ) %>%
+  mutate(Year = as.numeric(Year))
+
+f <- function(x) {
+  dnorm(x)
+}
+
+monte_carlo_points <- function(n, x_min, x_max, y_min, y_max) {
+  data.frame(
+    x = runif(n, min = x_min, max = x_max),
+    y = runif(n, min = y_min, max = y_max)
+  )
+}
+
+make_mc_data <- function(n) {
+  pts <- monte_carlo_points(n, -4, 4, 0, 0.4)
+
+  pts %>%
+    mutate(
+      curve_y = f(x),
+      flag = ifelse(y <= curve_y, "On/Below", "Above"),
+      n_label = paste0("n = ", n)
+    )
+}
+
+set.seed(123)
+mc_10 <- make_mc_data(10)
+mc_100 <- make_mc_data(100)
+mc_1000 <- make_mc_data(1000)
+mc_10000 <- make_mc_data(10000)
+
+mc_all <- bind_rows(mc_10, mc_100, mc_1000, mc_10000)
+```
